@@ -1,4 +1,4 @@
-# NestJS + TypeORM Slack 클론코딩
+## NestJS + TypeORM Slack 클론코딩
 
 ```
 강의
@@ -17,7 +17,7 @@ $ npm install
 ## Config .env
 
 ```
-...작성 중...
+PORT=3030
 ```
 
 ## Running the app
