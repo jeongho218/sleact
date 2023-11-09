@@ -1,10 +1,21 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseInterceptors,
+} from '@nestjs/common';
 import { JoinRequestDto } from './dto/join.request.dto';
 import { UserDto } from '../common/dto/user.dto';
 import { UsersService } from './users.service';
 import { ApiOperation, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { User } from 'src/common/decorators/user.decorator';
+import { UndefinedToNullInterceptor } from 'src/common/interceptors/undefinedToNull.interceptor';
 
+@UseInterceptors(UndefinedToNullInterceptor) // 인터셉트를 전체적으로 적용하고 싶다면 이 곳에,
+// 특정 라우터에만 적용하고 싶다면 그 곳에 입력
 @ApiTags('USER')
 @Controller('api/users')
 export class UsersController {
