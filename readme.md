@@ -9,15 +9,33 @@ https://github.com/ZeroCho/sleact
 
 ## Installation
 
+### FrontEnd
+
 ```bash
+
+$ cd frontend
+$ npm install
+```
+
+### BackEnd
+
+```
 $ cd a-nest
 $ npm install
 ```
 
 ## Config .env
 
+### FrontEnd
+
+.env 없음
+
+### BackEnd
+
+/a-nest/.env
+
 ```
-PORT=/* 사용할 포트 */
+PORT=3095
 DB_HOST=/* aws rds의 주소 */
 DB_USERNAME=/* aws rds admin 이름 */
 DB_PASSWORD=/* aws rds admin 패스워드 */
@@ -26,7 +44,16 @@ DB_DATABASE=/* 사용할 데이터베이스 이름 */
 
 ## Running the app
 
+### FrontEnd
+
 ```bash
+$ cd frontend
+$ npm run dev
+```
+
+### BackEnd
+
+```
 $ cd a-nest
 
 # watch mode
