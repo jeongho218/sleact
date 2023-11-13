@@ -32,9 +32,9 @@ export class UsersController {
 
   @ApiOperation({ summary: '회원가입' })
   @Post()
-  postUsers(@Body() data: JoinRequestDto) {
+  async join(@Body() data: JoinRequestDto) {
     // DTO(Data transfer Object) express의 body parser와 같은 역할
-    this.usersService.postUsers(data.email, data.nickname, data.password);
+    await this.usersService.join(data.email, data.nickname, data.password);
   }
 
   @ApiResponse({
