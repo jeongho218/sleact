@@ -13,7 +13,7 @@ https://github.com/ZeroCho/sleact
 
 ```bash
 
-$ cd frontend
+$ cd front
 $ npm install
 ```
 
@@ -47,7 +47,7 @@ DB_DATABASE=/* 사용할 데이터베이스 이름 */
 ### FrontEnd
 
 ```bash
-$ cd frontend
+$ cd front
 $ npm run dev
 ```
 
@@ -58,4 +58,10 @@ $ cd a-nest
 
 # watch mode
 $ npm run start:dev
+```
+
+## Browser
+
+```
+localhost:3090
 ```
