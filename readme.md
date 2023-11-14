@@ -40,6 +40,7 @@ DB_HOST=/* aws rds의 주소 */
 DB_USERNAME=/* aws rds admin 이름 */
 DB_PASSWORD=/* aws rds admin 패스워드 */
 DB_DATABASE=/* 사용할 데이터베이스 이름 */
+COOKIE_SECRET=cookienyamnyam
 ```
 
 ## Running the app

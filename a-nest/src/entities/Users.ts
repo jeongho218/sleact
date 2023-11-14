@@ -40,6 +40,11 @@ export class Users {
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty({
+    example: '패스워드 예시',
+    description: '패스워드',
+    required: true,
+  })
   @Column('varchar', { name: 'password', length: 100, select: false })
   password: string;
 
