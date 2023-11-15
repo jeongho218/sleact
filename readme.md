@@ -61,8 +61,18 @@ $ cd a-nest
 $ npm run start:dev
 ```
 
-## Browser
+## Test
+
+### FrontEnd
 
 ```
 localhost:3090
+```
+
+### BackEnd
+
+swagger 참조
+
+```
+localhost:3095/api
 ```
