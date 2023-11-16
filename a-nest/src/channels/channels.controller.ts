@@ -15,7 +15,7 @@ export class ChannelsController {
   }
 
   @Get(':name')
-  getSpecificChannel() {
+  getSpecificChannel(@Param('name') name: string) {
     //
   }
 
