@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ChannelMembers } from '../entities/ChannelMembers';
 import { Channels } from '../entities/Channels';
 import { Users } from '../entities/Users';
 import { Workspaces } from '../entities/Workspaces';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { ChannelChats } from './../entities/ChannelChats';
 
 @Injectable()
@@ -53,6 +53,117 @@ export class ChannelsService {
         name: name,
       },
       relations: ['Workspace'],
+    });
+  }
+
+  // 새로운 채널 만들기
+  async createWorkspaceChannels(url: string, name: string, myId: number) {
+    const workspace = await this.workspacesRepository.findOne({
+      where: { url: url },
+    });
+
+    const channel = new Channels();
+    channel.name = name;
+    channel.WorkspaceId = workspace.id;
+    const channelReturned = await this.channelsRepository.save(channel);
+
+    const channelMember = new ChannelMembers();
+    channelMember.UserId = myId;
+    channelMember.ChannelId = channelReturned.id;
+    await this.channelMembersRepository.save(channelMember);
+  }
+
+  // 채널 멤버 가져오기
+  async getWorkspaceChannelMembers(url: string, name: string) {
+    return (
+      this.usersRepository
+        .createQueryBuilder('user') // 'Users'의 alias
+        .innerJoin('user.Channels', 'channels', 'channels.name = :name', {
+          name: name,
+        }) // 'property', 'alias', 'condition', 'parameter'
+        .innerJoin('channels.Workspace', 'workspace', 'workspace.url = :url', {
+          url: url,
+        }) // 'property', 'alias', 'condition', 'parameter'
+        // 각기 다른 workspace에 같은 이름을 가진 channel이 있을 수 있기 때문에
+        // channel이 소속된 workspace도 확인할 것
+        .getMany()
+    );
+  }
+
+  // 채널 멤버 추가하기
+  async createWorkspaceChannelMembers(url, name, email) {
+    // 채널 찾기
+    const channel = await this.channelsRepository
+      .createQueryBuilder('channel')
+      .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
+        url: url,
+      }) // 'property', 'alias', 'condition', 'parameter'
+      .where('channel.name = :name', { name: name })
+      .getOne();
+
+    if (!channel) {
+      throw new NotFoundException('채널이 존재하지 않습니다.');
+    }
+
+    // 멤버로써 추가할 사용자 찾기
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.email = :email', { email: email })
+      .innerJoin('user.Workspaces', 'workspace', 'workspace.url = :url', {
+        url: url,
+      }) // 'property', 'alias', 'condition', 'parameter'
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException('사용자가 존재하지 않습니다.');
+    }
+
+    const channelMember = new ChannelMembers();
+    channelMember.ChannelId = channel.id;
+    channelMember.UserId = user.id;
+    await this.channelMembersRepository.save(channelMember);
+  }
+
+  // 채널 내 채팅 내역 가져오기
+  async getWorkspaceChannelChats(
+    url: string,
+    name: string,
+    perPage: number,
+    page: number,
+  ) {
+    return (
+      this.channelChatsRepository
+        .createQueryBuilder('channelChats')
+        .innerJoin('channelChats.Channel', 'channel', 'channel.name = :name', {
+          name: name,
+        }) // 'property', 'alias', 'condition', 'parameter'
+        .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
+          url: url,
+        }) // 'property', 'alias', 'condition', 'parameter'
+        .innerJoinAndSelect('channelChats.User', 'user') // 'property', 'alias'
+        // 채팅 작성자 가져오는 용도
+        .orderBy('channelChats.createdAt', 'DESC') // 생성일 기준 내림차순
+        .take(perPage) // limit(제한), 채팅을 한번에 몇개씩 가져올 것인지
+        .skip(perPage * (page - 1)) // 페이지
+        .getMany()
+    );
+  }
+
+  // 채널에서 아직 내가 읽지 않는 메세지의 개수를 가져오기
+  async getChannelUnreadsCount(url, name, after) {
+    // 채널 id 가져오는 쿼리,
+    const channel = await this.channelsRepository
+      .createQueryBuilder('channel')
+      .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
+        url: url,
+      })
+      .where('channel.name = :name', { name: name })
+      .getOne();
+
+    return this.channelChatsRepository.count({
+      where: { ChannelId: channel.id, createdAt: MoreThan(new Date(after)) },
+      // `MoreThan(new Date(after))`는 쿼리로 createdAt > "`현재 날짜`"와 같다
+      // 관련문서: https://orkhan.gitbook.io/typeorm/docs/find-options
     });
   }
 }
