@@ -6,6 +6,7 @@ import { Users } from '../entities/Users';
 import { Workspaces } from '../entities/Workspaces';
 import { MoreThan, Repository } from 'typeorm';
 import { ChannelChats } from './../entities/ChannelChats';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class ChannelsService {
@@ -20,6 +21,7 @@ export class ChannelsService {
     private channelChatsRepository: Repository<ChannelChats>,
     @InjectRepository(Users)
     private usersRepository: Repository<Users>,
+    private eventsGateway: EventsGateway,
   ) {}
 
   // id로 채널 가져오기
@@ -165,5 +167,33 @@ export class ChannelsService {
       // `MoreThan(new Date(after))`는 쿼리로 createdAt > "`현재 날짜`"와 같다
       // 관련문서: https://orkhan.gitbook.io/typeorm/docs/find-options
     });
+  }
+
+  async postChat({ url, name, content, myId }) {
+    const channel = await this.channelsRepository
+      .createQueryBuilder('channel') // 'alias'
+      .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
+        url: url,
+      }) // 'property', 'alias', 'condition', 'parameters'
+      .where('channel.name = :name', { name: name }) // 'where', 'parameters
+      .getOne();
+    if (!channel) {
+      throw new NotFoundException('채널이 존재하지 않습니다.');
+    }
+
+    const chats = new ChannelChats();
+    chats.content = content;
+    chats.UserId = myId;
+    chats.ChannelId = channel.id;
+    const savedChat = await this.channelChatsRepository.save(chats);
+    const chatWithUser = await this.channelChatsRepository.findOne({
+      where: { id: savedChat.id },
+      relations: ['User', 'Channel'],
+    });
+    // socket.io로 워크스페이스/채널 사용자에게 전송
+    this.eventsGateway.server
+      .to(`/ws-${url}-${channel.id}`)
+      // `워크스페이스-워크스페이스 이름-채널ID`
+      .emit('message', chatWithUser);
   }
 }

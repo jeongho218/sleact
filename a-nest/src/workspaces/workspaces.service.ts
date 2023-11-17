@@ -64,10 +64,12 @@ export class WorkspacesService {
 
   // 워크스페이스에 속해있는 사용자 목록 가져오기
   async getWorkspaceMembers(url: string) {
-    this.usersRepository
-      .createQueryBuilder('u')
-      .innerJoin('u.WorkspaceMembers', 'm')
-      .innerJoin('m.Workspace', 'w', 'w.url = :url', { url: url })
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .innerJoin('user.WorkspaceMembers', 'members')
+      .innerJoin('members.Workspace', 'workspace', 'workspace.url = :url', {
+        url: url,
+      })
       .getMany();
     // 여기서 'u'는 엔티티 'Users'의, 'm'는 엔티티 'WorkspaceMembers'의, 'w'는 'Workspace'의 alias(별명)
     // Users와 WorkspaceMembers는 OneToMany(일대다) 관계,

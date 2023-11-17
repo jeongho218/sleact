@@ -17,6 +17,7 @@ import { Users } from './entities/Users';
 import { WorkspaceMembers } from './entities/WorkspaceMembers';
 import { Workspaces } from './entities/Workspaces';
 import { AuthModule } from './auth/auth.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { AuthModule } from './auth/auth.module';
       charset: 'utf8mb4_general_ci', // 이모티콘을 사용하기 위한 캐릭터셋
     }),
     TypeOrmModule.forFeature([Users]),
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService],
