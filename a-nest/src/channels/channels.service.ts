@@ -169,7 +169,9 @@ export class ChannelsService {
     });
   }
 
+  // 채팅 작성 - 입력 내용을 DB에 먼저 저장하고, socket.io를 이용하여 같은 채널 사람들에게 전송함
   async postChat({ url, name, content, myId }) {
+    // 채널 조회
     const channel = await this.channelsRepository
       .createQueryBuilder('channel') // 'alias'
       .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
@@ -195,5 +197,45 @@ export class ChannelsService {
       .to(`/ws-${url}-${channel.id}`)
       // `워크스페이스-워크스페이스 이름-채널ID`
       .emit('message', chatWithUser);
+  }
+
+  // 채팅으로 이미지 파일 전송
+  async createWorkspaceChannelImages(
+    url: string,
+    name: string,
+    files: Express.Multer.File[],
+    myId: number,
+  ) {
+    console.log(files);
+
+    const channel = await this.channelsRepository
+      .createQueryBuilder('channel') // 'alias'
+      .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
+        url: url,
+      }) // 'property', 'alias', 'condition', 'parameter'
+      .where('channel.name = :name', { name: name }) // 'where', 'parameter'
+      .getOne();
+    if (!channel) {
+      throw new NotFoundException('채널이 존재하지 않습니다.');
+    }
+
+    // 이 부분도 가능하면 트랜잭션 걸어주는 것이 좋음
+    for (let i = 0; i < files.length; i++) {
+      const chats = new ChannelChats();
+      chats.content = files[i].path;
+      chats.UserId = myId;
+      chats.ChannelId = channel.id;
+      const savedChat = await this.channelChatsRepository.save(chats);
+
+      const chatWithUser = await this.channelChatsRepository.findOne({
+        where: { id: savedChat.id },
+        relations: ['User', 'Channel'],
+      });
+
+      // socket.io로 현재 채널 전체에 전송
+      this.eventsGateway.server
+        .to(`/ws-${url}-${chatWithUser.ChannelId}`) // 현재 자신이 속한 채널
+        .emit('message', chatWithUser);
+    }
   }
 }
