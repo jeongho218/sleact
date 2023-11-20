@@ -8,15 +8,25 @@ import {
   UploadedFile,
   UploadedFiles,
   UseInterceptors,
+  UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCookieAuth,
+  ApiOperation,
+  ApiProperty,
+  ApiTags,
+} from '@nestjs/swagger';
 import { User } from '../common/decorators/user.decorator';
 import { ChannelsService } from './channels.service';
-import { PostChatDto } from './post-chat.dto';
+import { PostChatDto } from './dto/post-chat.dto';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { LoggedInGuard } from '../auth/logged-in.guard';
+import { Users } from '../entities/Users';
+import { CreateChannelDto } from './dto/create-channel.dto';
 
 try {
   fs.readdirSync('uploads');
@@ -26,57 +36,116 @@ try {
 }
 
 @ApiTags('CHANNEL')
-@Controller('api/workspaces/:url/channels')
+@ApiCookieAuth('connect.sid')
+@UseGuards(LoggedInGuard)
+@Controller('api/workspaces')
 export class ChannelsController {
   constructor(private channelsService: ChannelsService) {}
 
-  @Get()
-  getAllChannels(@Param('url') url: string, @User() user) {
+  @ApiOperation({ summary: '워크스페이스 채널 모두 가져오기' })
+  @Get(':url/channels')
+  async getAllChannels(@Param('url') url, @User() user: Users) {
     return this.channelsService.getWorkspaceChannels(url, user.id);
   }
 
-  @Post()
-  postChannels() {
-    //
+  @ApiOperation({ summary: '워크스페이스 특정 채널 가져오기' })
+  @Get(':url/channels/:name')
+  async getSpecificChannel(@Param('url') url, @Param('name') name) {
+    return this.channelsService.getWorkspaceChannel(url, name);
   }
 
-  @Get(':name')
-  getSpecificChannel(@Param('name') name: string) {
-    //
-  }
-
-  @Get(':name/chats')
-  getChats(
-    @Query('url') url: string,
-    @Param('name') name: string,
-    @Query() query,
-    @Param() param,
+  @ApiOperation({ summary: '워크스페이스 채널 만들기' })
+  @Post(':url/channels')
+  async createWorkspaceChannels(
+    @Param('url') url,
+    @Body() body: CreateChannelDto,
+    @User() user: Users,
   ) {
-    console.log(query.perPage, query.page);
-    console.log(param.id, param.url);
-    return this.channelsService.getWorkspaceChannelChats(
+    return this.channelsService.createWorkspaceChannels(
       url,
-      name,
-      query.perPage,
-      query.page,
+      body.name,
+      user.id,
     );
   }
 
-  @Post(':name/chats')
-  postChat(
+  @ApiOperation({ summary: '워크스페이스 채널 멤버 가져오기' })
+  @Get(':url/channels/:name/members')
+  async getWorkspaceChannelMembers(
     @Param('url') url: string,
     @Param('name') name: string,
-    @Body() body: PostChatDto,
-    @User() user,
   ) {
-    // web socket 사용
-    return this.channelsService.postChat({
-      url,
-      content: body.content,
-      name,
-      myId: user.id,
-    });
+    return this.channelsService.getWorkspaceChannelMembers(url, name);
   }
+
+  @ApiOperation({ summary: '워크스페이스 채널 멤버 초대하기' })
+  @Post(':url/channels/:name/members')
+  async createWorkspaceChannelMembers(
+    @Param('url') url: string,
+    @Param('name') name: string,
+    @Body('email') email,
+  ) {
+    return this.channelsService.createWorkspaceChannelMembers(url, name, email);
+  }
+
+  @ApiOperation({ summary: '워크스페이스 특정 채널 채팅 모두 가져오기' })
+  @Get(':name/chats')
+  async getWorkspaceChannelChats(
+    @Param('url') url,
+    @Param('name') name,
+    @Query('perPage', ParseIntPipe) perPage: number,
+    @Query('page', ParseIntPipe) page: number,
+  ) {
+    return this.channelsService.getWorkspaceChannelChats(
+      url,
+      name,
+      perPage,
+      page,
+    );
+  }
+  // async getWorkspaceChannelChats(
+  //   @Query('url') url: string,
+  //   @Param('name') name: string,
+  //   @Query() query,
+  //   @Param() param,
+  // ) {
+  //   console.log(query.perPage, query.page);
+  //   console.log(param.id, param.url);
+  //   return this.channelsService.getWorkspaceChannelChats(
+  //     url,
+  //     name,
+  //     query.perPage,
+  //     query.page,
+  //   );
+  // }
+
+  @ApiOperation({ summary: '워크스페이스 특정 채널 채팅 생성하기' })
+  @Post(':url/channels/:name/chats')
+  async createWorkspaceChannelChats(
+    @Param('url') url,
+    @Param('name') name,
+    @Body('content') content,
+    @User() user: Users,
+  ) {
+    return this.channelsService.createWorkspaceChannelChats(
+      url,
+      name,
+      content,
+      user.id,
+    );
+  }
+  // async postChat(
+  //   @Param('url') url: string,
+  //   @Param('name') name: string,
+  //   @Body() body: PostChatDto,
+  //   @User() user,
+  // ) {
+  //   return this.channelsService.createWorkspaceChannelCats({
+  //     url,
+  //     content: body.content,
+  //     name,
+  //     myId: user.id,
+  //   });
+  // }
 
   @ApiOperation({ summary: '워크스페이스 특정 채널 이미지 업로드하기' })
   @UseInterceptors(
@@ -93,8 +162,8 @@ export class ChannelsController {
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
-  @Post(':name/images')
-  postImages(
+  @Post(':url/channels/:name/images')
+  async createWorkspaceChannelImages(
     @UploadedFiles() files: Express.Multer.File[],
     @Param('url') url: string,
     @Param('name') name: string,
@@ -108,22 +177,13 @@ export class ChannelsController {
     );
   }
 
-  @Get(':name/unreads')
-  PostChat(
-    @Param('url') url: string,
-    @Param('name') name: string,
-    @Query('after') after: number,
+  @ApiOperation({ summary: '안읽은 개수 가져오기' })
+  @Get(':url/channels/:name/unreads')
+  async getUnreads(
+    @Param('url') url,
+    @Param('name') name,
+    @Query('after', ParseIntPipe) after: number,
   ) {
     return this.channelsService.getChannelUnreadsCount(url, name, after);
-  }
-
-  @Get(':name/members')
-  getAllMembers(@Param('url') url: string, @Param('name') name: string) {
-    return this.channelsService.getWorkspaceChannelMembers(url, name);
-  }
-
-  @Post(':name/members')
-  inviteMembers() {
-    //
   }
 }

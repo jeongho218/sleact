@@ -50,12 +50,19 @@ export class ChannelsService {
 
   // 워크스페이스 채널 하나 가져오기
   async getWorkspaceChannel(url: string, name: string) {
-    return this.channelsRepository.findOne({
-      where: {
-        name: name,
-      },
-      relations: ['Workspace'],
-    });
+    return this.channelsRepository
+      .createQueryBuilder('channel')
+      .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
+        url: url,
+      })
+      .where('channel.name = :name', { name: name })
+      .getOne();
+    // return this.channelsRepository.findOne({
+    //   where: {
+    //     name: name,
+    //   },
+    //   relations: ['Workspace'],
+    // });
   }
 
   // 새로운 채널 만들기
@@ -92,7 +99,7 @@ export class ChannelsService {
     );
   }
 
-  // 채널 멤버 추가하기
+  // 채널에 멤버 초대하기
   async createWorkspaceChannelMembers(url, name, email) {
     // 채널 찾기
     const channel = await this.channelsRepository
@@ -151,26 +158,14 @@ export class ChannelsService {
     );
   }
 
-  // 채널에서 아직 내가 읽지 않는 메세지의 개수를 가져오기
-  async getChannelUnreadsCount(url, name, after) {
-    // 채널 id 가져오는 쿼리,
-    const channel = await this.channelsRepository
-      .createQueryBuilder('channel')
-      .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
-        url: url,
-      })
-      .where('channel.name = :name', { name: name })
-      .getOne();
-
-    return this.channelChatsRepository.count({
-      where: { ChannelId: channel.id, createdAt: MoreThan(new Date(after)) },
-      // `MoreThan(new Date(after))`는 쿼리로 createdAt > "`현재 날짜`"와 같다
-      // 관련문서: https://orkhan.gitbook.io/typeorm/docs/find-options
-    });
-  }
-
   // 채팅 작성 - 입력 내용을 DB에 먼저 저장하고, socket.io를 이용하여 같은 채널 사람들에게 전송함
-  async postChat({ url, name, content, myId }) {
+  // async createWorkspaceChannelChats({ url, name, content, myId }) {
+  async createWorkspaceChannelChats(
+    url: string,
+    name: string,
+    content: string,
+    myId: number,
+  ) {
     // 채널 조회
     const channel = await this.channelsRepository
       .createQueryBuilder('channel') // 'alias'
@@ -237,5 +232,23 @@ export class ChannelsService {
         .to(`/ws-${url}-${chatWithUser.ChannelId}`) // 현재 자신이 속한 채널
         .emit('message', chatWithUser);
     }
+  }
+
+  // 채널에서 아직 내가 읽지 않는 메세지의 개수를 가져오기
+  async getChannelUnreadsCount(url, name, after) {
+    // 채널 id 가져오는 쿼리,
+    const channel = await this.channelsRepository
+      .createQueryBuilder('channel')
+      .innerJoin('channel.Workspace', 'workspace', 'workspace.url = :url', {
+        url: url,
+      })
+      .where('channel.name = :name', { name: name })
+      .getOne();
+
+    return this.channelChatsRepository.count({
+      where: { ChannelId: channel.id, createdAt: MoreThan(new Date(after)) },
+      // `MoreThan(new Date(after))`는 쿼리로 createdAt > "`현재 날짜`"와 같다
+      // 관련문서: https://orkhan.gitbook.io/typeorm/docs/find-options
+    });
   }
 }
