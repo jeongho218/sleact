@@ -71,7 +71,8 @@ export class WorkspacesService {
         url: url,
       })
       .getMany();
-    // 여기서 'u'는 엔티티 'Users'의, 'm'는 엔티티 'WorkspaceMembers'의, 'w'는 'Workspace'의 alias(별명)
+    // 여기서 'user'는 엔티티 'Users'의, 'members'는 엔티티 'WorkspaceMembers'의,
+    // 'workspace'는 'Workspace'의 alias(별명)
     // Users와 WorkspaceMembers는 OneToMany(일대다) 관계,
     // WorkspaceMembers와 Workspace도 OneToMany(일대다) 관계
     // 즉 Users에서 WorkspaceMembers를 거쳐 Workspace에 접근한 다음
@@ -82,7 +83,7 @@ export class WorkspacesService {
   async createWorkspaceMembers(url, email) {
     // 워크스페이스 특정
     const workspace = await this.workspacesRepository.findOne({
-      where: { url },
+      where: { url: url },
       join: {
         alias: 'workspace',
         innerJoinAndSelect: {
