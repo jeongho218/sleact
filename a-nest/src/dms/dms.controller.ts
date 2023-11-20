@@ -21,7 +21,7 @@ import { DMsService } from './dms.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
 
 try {
-  fs;
+  fs.readdirSync('uploads');
 } catch (error) {
   console.error('uploads 폴더가 없어 uploads 폴더를 생성합니다.');
   fs.mkdirSync('uploads');
