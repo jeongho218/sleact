@@ -19,6 +19,14 @@ export class UsersService {
   ) {}
   getUsers() {}
 
+  // 이메일 중복 검사
+  async findByEmail(email: string) {
+    return this.usersRepository.findOne({
+      where: { email: email },
+      select: ['id', 'email', 'password'],
+    });
+  }
+
   // 회원가입 API
   async join(email: string, nickname: string, password: string) {
     const queryRunner = this.dataSource.createQueryRunner();

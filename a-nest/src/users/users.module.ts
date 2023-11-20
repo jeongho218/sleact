@@ -13,6 +13,7 @@ import { ChannelMembers } from '../entities/ChannelMembers';
   // dependency injection할 때에는
   // 실체 객체를 우선 모듈에 넣어주어야 한다.
   providers: [UsersService],
+  exports: [UsersService],
   controllers: [UsersController],
 })
 export class UsersModule {}
