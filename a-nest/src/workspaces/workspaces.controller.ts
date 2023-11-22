@@ -11,7 +11,7 @@ import {
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { WorkspacesService } from './workspaces.service';
 import { User } from '../common/decorators/user.decorator';
-import { Users } from 'src/entities/Users';
+import { Users } from '../entities/Users';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { LoggedInGuard } from '../auth/logged-in.guard';
 
